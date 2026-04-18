@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muehehehehe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink-color: #2c3e50;
+            --heart-color: #e74c3c;
+        }
+
+        /* Essential for the "Scroll" feel */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background-color: #f4f1ea;
+            /* The fixed background makes it feel like writing on one long sheet of paper */
+            background-image: url('paper.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            font-family: 'Caveat', cursive;
+            color: var(--ink-color);
+            overflow-x: hidden;
+        }
+
+        /* Create depth by having multiple sections */
+        section {
+            min-height: 100vh; /* Changed to min-height for long text on mobile */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 40px 20px; /* Gives text room on small screens */
+            box-sizing: border-box;
+        }
+
+        .message {
+            font-size: clamp(1.8rem, 5vw, 2.8rem); /* Automatically shrinks on mobile */
+            max-width: 600px;
+            line-height: 1.4;
+            z-index: 10;
+        }
+
+        /* When the section is in view, reveal the text */
+        section.reveal .message {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Scribble Container */
+        #master-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%; /* Spans the full length of the body */
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .path-line {
+            fill: none;
+            stroke: var(--ink-color);
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.6;
+            filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.1));
+        }
+
+        .scribble-wrap {
+            position: absolute;
+            width: 80vw; /* Scales with screen width */
+            max-width: 500px; /* Prevents it from getting too huge on 4K monitors */
+            height: auto;
+            z-index: 1;
+            pointer-events: none; /* Crucial: stops the SVG from blocking clicks/scrolls */
+        }
+
+        .scribble-path {
+            fill: none;
+            stroke: var(--ink-color);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 2s ease-in-out;
+        }
+
+        /* Trigger drawing when visible */
+        section.reveal .scribble-path {
+            stroke-dashoffset: 0;
+        }
+
+        /* The Final Heart Button */
+        .final-discovery {
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            transition: transform 0.3s ease;
+            margin-top: 30px;
+        }
+
+        .final-discovery:hover {
+            transform: scale(1.2);
+        }
+
+        .final-discovery svg {
+            width: 80px;
+            height: 80px;
+            fill: var(--heart-color);
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.1));
+        }
+
+        /* Video Modal */
+        .video-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+            z-index: 1000;
+        }
+
+        .video-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        video {
+            max-width: 90%;
+            max-height: 80vh;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 3rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Positioning specific scribbles */
+        .s1 { top: 10%; left: 5%; transform: rotate(-5deg); }
+        .s2 { bottom: 15%; right: 5%; transform: rotate(10deg); }
+        .s3 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+        .holder {
+            position: relative;
+            width: 100%;
+            height: 100vh; /* Keeps the section full screen */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cartoon {
+            position: absolute;
+            /* Now you can use top/bottom/left/right to "pin" it */
+            bottom: 10%; 
+            right: 5%;
+            width: 150px; /* Adjust size as needed */
+            z-index: 5;   /* Keeps it above the scribble line but maybe below text */
+        }
+
+        .cartoon-button {
+            width: 200px;         /* Adjust size to your liking */
+            cursor: pointer;      /* Changes cursor to a hand on hover */
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 5px solid white; /* Gives it a Polaroid/Paper border look */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: inline-block; /* Keeps it centered with the text */
+            margin-top: 20px;
+        }
+
+        .cartoon-button:hover {
+            transform: scale(1.1) rotate(3deg); /* Wiggles and grows when hovered */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .cartoon-button:active {
+            transform: scale(0.95); /* Shrinks slightly when clicked */
+        }
+    </style>
+</head>
+<body>
+    <svg id="master-svg" preserveAspectRatio="none">
+        <path id="scribble-path" class="path-line" d="" />
+    </svg>
+
+    <section id="sec1" class = "holder">
+        <div class="message">It's been a pleasure to know you</div>
+        <div class="message">Hope your wishes comes true</div>
+        <div class="message">Here's ur cake</div>
+        <img src = "1.jpeg" style = "right:25%;" class = "cartoon">
+        <img src = "2.jpeg" style = "left:15%; top:10%;" class = "cartoon">
+    </section>
+
+    <section id="sec2">
+        <div class="message">Selamat tambah tua 1 tahun lagi.</div>
+        <div class="message">Semangat y untuk ujian sama tugasnya.</div>
+        <div class="message">Semoga dormnya keterima juga.</div>
+        <img src = "3.jpeg" style = "left:15%;" class = "cartoon">
+        <img src = "6.jpeg" style = "right:15%; top:10%;" class = "cartoon">
+    </section>
+
+    <center>
+        <section id="sec3" class="holder">
+            <div class="message">
+                Click here :3
+                <br><br>
+                
+                <img src="4.jpeg" 
+                     class="cartoon-button" 
+                     onclick="revealVideo()" 
+                     alt="Click me">
+                     
+            </div>
+            <div class="message">
+                Happy birthday, Flo
+                鍾金花
+            </div>
+        </section>
+    </center>
+
+    <div class="video-modal" id="videoModal">
+        <button class="close-btn" onclick="closeVideo()">×</button>
+        <video id="myVideo" src="https://www.dropbox.com/scl/fi/4cv1c3xnt5ehj7klfw6xn/vid.mp4?rlkey=p12g5r4nvrd8fh055gpehaews&st=w8lcsmmx&dl=0" controls playsinline></video>
+    </div>
+
+    <script>
+        // Set your video filename here
+        const videoFileName = 'vid.mp4';
+
+        // 1. Observer to trigger animations on scroll
+        const observerOptions = { threshold: 0.5 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('reveal');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+
+        // 2. Play and Download Logic
+        function revealVideo() {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('myVideo');
+
+            modal.classList.add('active');
+            video.play();
+
+            // Background download
+            const a = document.createElement('a');
+            a.href = videoFileName;
+            a.download = 'Our_Video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function closeVideo() {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('myVideo');
+            modal.classList.remove('active');
+            video.pause();
+        }
+
+        const path = document.getElementById('scribble-path');
+        const svg = document.getElementById('master-svg');
+
+        // 1. Generate a random winding path based on page height
+        function generatePath() {
+            const h = document.body.scrollHeight;
+            const w = window.innerWidth;
+            
+            // Start Top Center
+            let d = `M ${w/2} 50 `;
+            
+            // Create a "zig-zag" point for every section
+            // Point 1: Middle section (left side)
+            d += `C ${w * 0.1} ${h * 0.2}, ${w * 0.9} ${h * 0.4}, ${w * 0.2} ${h * 0.5} `;
+            // Point 2: Toward the heart (right side to center)
+            d += `S ${w * 0.8} ${h * 0.8}, ${w * 0.5} ${h * 0.95}`;
+            
+            path.setAttribute('d', d);
+            
+            // Set up the "draw on scroll" math
+            const length = path.getTotalLength();
+            path.style.strokeDasharray = length;
+            path.style.strokeDashoffset = length;
+        }
+
+        // 2. Animate the line based on % of scroll
+        window.addEventListener('scroll', () => {
+            const scrollPercent = (document.documentElement.scrollTop + document.body.scrollTop) / (document.documentElement.scrollHeight - document.documentElement.clientHeight);
+            const length = path.getTotalLength();
+            
+            // Scroll at 0% = full offset (hidden)
+            // Scroll at 100% = 0 offset (visible)
+            path.style.strokeDashoffset = length - (length * scrollPercent);
+        });
+
+        // Initialize
+        window.onload = generatePath;
+        window.onresize = generatePath;
+
+    </script>
+</body>
+</html>
